@@ -1,0 +1,11 @@
+{
+  "co2_emission_g": 1200,
+  "energy_type": 1,
+  "production_ts": 1705000000,
+  "product_id": 987654321,
+  "product_secret": 4444,
+  "max_co2_limit_g": 3380,
+  "allowed_type_1": 1,
+  "allowed_type_2": 2,
+  "min_production_ts": 1704067200
+}

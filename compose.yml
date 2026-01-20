@@ -1,0 +1,50 @@
+# docker-compose.yml
+
+services:
+  # Service 1: The ZK-Proof Builder (your zkproof service, corrected)
+  prover:
+    build:
+      context: .
+      dockerfile: ./docker/prover.Dockerfile
+    volumes:
+      # Correctly mount the entire project directory into the container.
+      - ./:/app
+      - circomlib_cache:/app/circuits/circomlib
+
+  # Service 2: The Polygon Edge Blockchain Node
+  polygon-edge:
+    build:
+      context: .
+      dockerfile: ./docker/blockchain/Dockerfile
+    volumes:
+      - polygon_edge_data:/app
+    ports:
+      - "10002:10002"
+    networks:
+      - dpp-net
+  # Service 3: The Hardhat Deployer & Interactor
+  hardhat:
+    build:
+      context: .
+      dockerfile: ./docker/hardhat.Dockerfile
+    volumes:
+      - ./:/app
+      - hardhat_node_modules:/app/node_modules
+    env_file:
+      - .env
+    depends_on:
+      - polygon-edge
+    networks:
+      - dpp-net
+
+
+# Define the custom network that allows containers to communicate by service name.
+networks:
+  dpp-net:
+    driver: bridge
+
+# Define the named volume for persisting blockchain data.
+volumes:
+  polygon_edge_data:
+  circomlib_cache:
+  hardhat_node_modules:
