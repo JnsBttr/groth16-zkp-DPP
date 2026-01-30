@@ -37,6 +37,85 @@ services:
     networks:
       - dpp-net
 
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: blockscout
+      POSTGRES_PASSWORD: blockscout
+      POSTGRES_DB: blockscout
+    volumes:
+      - blockscout_db:/var/lib/postgresql/data
+    networks:
+      - dpp-net
+
+  blockscout:
+    image: blockscout/blockscout:latest
+    depends_on:
+      - blockscout-migrate
+      - postgres
+      - polygon-edge
+    command: ["sh", "-lc", "bin/blockscout start"]
+    environment:
+      BLOCKSCOUT_HOST: "localhost"
+      BLOCKSCOUT_PROTOCOL: "http"
+      PORT: "4000"
+      ETHEREUM_JSONRPC_VARIANT: "geth"
+      DATABASE_URL: postgresql://blockscout:blockscout@postgres:5432/blockscout?ssl=false
+      ECTO_USE_SSL: "false"
+      SECRET_KEY_BASE: "dev_secret_key_base_for_local_only_change_if_needed"
+      CHAIN_ID: "999"
+      ETHEREUM_JSONRPC_HTTP_URL: "http://polygon-edge:10002"
+      ETHEREUM_JSONRPC_TRACE_URL: "http://polygon-edge:10002"
+      ETHEREUM_JSONRPC_WS_URL: "ws://polygon-edge:10002/ws"
+      API_V2_ENABLED: "true"
+      MIX_ENV: "prod"
+      INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: "true"
+      INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: "true"
+    ports:
+      - "4000:4000"
+    networks:
+      - dpp-net
+
+  blockscout-frontend:
+    image: ghcr.io/blockscout/frontend:latest
+    depends_on:
+      - blockscout
+    environment:
+      NEXT_PUBLIC_APP_PROTOCOL: "http"
+      NEXT_PUBLIC_APP_HOST: "localhost"
+      NEXT_PUBLIC_APP_PORT: "3000"
+      NEXT_PUBLIC_API_PROTOCOL: "http"
+      NEXT_PUBLIC_API_HOST: "localhost"
+      NEXT_PUBLIC_API_PORT: "4000"
+      NEXT_PUBLIC_API_BASE_PATH: ""
+      NEXT_PUBLIC_NETWORK_NAME: "Polygon Edge"
+      NEXT_PUBLIC_NETWORK_ID: "999"
+    ports:
+      - "3000:3000"
+    networks:
+      - dpp-net
+
+  blockscout-migrate:
+    image: blockscout/blockscout:latest
+    depends_on:
+      - postgres
+    environment:
+      ETHEREUM_JSONRPC_VARIANT: "geth"
+      DATABASE_URL: postgresql://blockscout:blockscout@postgres:5432/blockscout?ssl=false
+      ECTO_USE_SSL: "false"
+      SECRET_KEY_BASE: "dev_secret_key_base_for_local_only_change_if_needed"
+      CHAIN_ID: "999"
+      ETHEREUM_JSONRPC_HTTP_URL: "http://polygon-edge:10002"
+      ETHEREUM_JSONRPC_TRACE_URL: "http://polygon-edge:10002"
+      ETHEREUM_JSONRPC_WS_URL: "ws://polygon-edge:10002/ws"
+      API_V2_ENABLED: "true"
+      MIX_ENV: "prod"
+      INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: "true"
+      INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: "true"
+    command: ["sh", "-lc", "bin/blockscout eval 'Elixir.Explorer.ReleaseTasks.create_and_migrate()'"]
+    networks:
+      - dpp-net
+
 
 # Define the custom network that allows containers to communicate by service name.
 networks:
@@ -48,3 +127,4 @@ volumes:
   polygon_edge_data:
   circomlib_cache:
   hardhat_node_modules:
+  blockscout_db:
