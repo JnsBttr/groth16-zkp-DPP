@@ -7,7 +7,9 @@ async function main() {
 
   const deploymentInfo = JSON.parse(fs.readFileSync("deployment.json", "utf8"));
   const managerAddress = deploymentInfo.productProofManager;
-  const rawCalldata = fs.readFileSync(path.join("Tests", "calldata.json"), "utf8").trim();
+  const rawCalldata = fs
+    .readFileSync(path.join("Tests", "calldata.json"), "utf8")
+    .trim();
   let calldata: any;
   try {
     calldata = JSON.parse(rawCalldata);
@@ -21,49 +23,54 @@ async function main() {
   }
 
   const [a, b, c, input] = calldata;
-  const manager = await ethers.getContractAt("ProductProofManager", managerAddress);
-  
+  const manager = await ethers.getContractAt(
+    "ProductProofManager",
+    managerAddress
+  );
+
   console.log("\nSubmitting the proof to the contract...");
   const proofTypeString = "groth16-v1";
   const proofTypeBytes32 = ethers.encodeBytes32String(proofTypeString);
-  
+
   const submitTx = await manager.submitProof(proofTypeBytes32, a, b, c, input);
   const receipt = await submitTx.wait();
-  
+
   if (receipt) {
     logGasUsage(receipt, "Proof Submission");
   }
-  
-  const productHash = input[1]; 
+
+  const productHash = input[1];
   console.log(`\nChecking verification status for productHash: ${productHash}`);
   const isVerified = await manager.isProductVerified(productHash);
-  console.log(`✅ Verification result: ${isVerified}`);
+  console.log(`Verification result: ${isVerified}`);
 }
 
 function logGasUsage(receipt: any, actionName: string) {
-    if (!receipt) {
-        console.log(`Could not get receipt for ${actionName}`);
-        return;
-    }
+  if (!receipt) {
+    console.log(`Could not get receipt for ${actionName}`);
+    return;
+  }
 
-    const gasUsed: bigint = receipt.gasUsed;
-    
-    const effectiveGasPrice: bigint = receipt.effectiveGasPrice || receipt.gasPrice;
+  const gasUsed: bigint = receipt.gasUsed;
 
-    if (gasUsed === null || effectiveGasPrice === null) {
-        console.log("Gas information not available in receipt.");
-        return;
-    }
+  const effectiveGasPrice: bigint =
+    receipt.effectiveGasPrice || receipt.gasPrice;
 
-    const gasCostInWei: bigint = gasUsed * effectiveGasPrice;
-    const gasCostInEth = ethers.formatEther(gasCostInWei);
+  if (gasUsed === null || effectiveGasPrice === null) {
+    console.log("Gas information not available in receipt.");
+    return;
+  }
 
-    console.log(`   - Action: ${actionName}`);
-    console.log(`   - Gas Used: ${gasUsed.toString()}`);
-    console.log(`   - Gas Price: ${ethers.formatUnits(effectiveGasPrice, "gwei")} Gwei`);
-    console.log(`   - Transaction Cost: ${gasCostInEth} ETH`);
+  const gasCostInWei: bigint = gasUsed * effectiveGasPrice;
+  const gasCostInEth = ethers.formatEther(gasCostInWei);
+
+  console.log(` - Action: ${actionName}`);
+  console.log(` - Gas Used: ${gasUsed.toString()}`);
+  console.log(
+    ` - Gas Price: ${ethers.formatUnits(effectiveGasPrice, "gwei")} Gwei`
+  );
+  console.log(` - Transaction Cost: ${gasCostInEth} ETH`);
 }
-
 
 main().catch((error) => {
   console.error(error);

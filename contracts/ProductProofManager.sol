@@ -7,7 +7,7 @@ contract ProductProofManager {
     error ZeroAddress(); // zero address not allowed
     error NotAContract(); // address has no code
     error VerifierNotRegistered(); // missing verifier for proofType
-    error ProofNotValid(); // input[0] must be 1
+    error PolicyMismatch(); // public policy inputs do not match stored policy
     error AlreadyVerified(); // productHash already verified globally
     error VerificationInProgress(); // per-product reentrancy lock active
     error VerificationFailed(); // verifier call failed or returned false
@@ -28,6 +28,14 @@ contract ProductProofManager {
     mapping(uint256 => ProductProof) public proofs; // proofId => ProductProof
 
     address public owner; // contract admin
+    struct Policy {
+        uint256 max_co2_limit_g;
+        uint256 allowed_type_1;
+        uint256 allowed_type_2;
+        uint256 min_production_ts;
+    }
+
+    Policy public policy; // current sustainability policy
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert OnlyOwner(); // restrict to owner
@@ -37,6 +45,7 @@ contract ProductProofManager {
     event ProofSubmitted(uint256 indexed proofId, address indexed submitter, bytes32 indexed proofType); // emitted on successful submission
     event VerifierRegistered(bytes32 indexed proofType, address verifier); // emitted on register/update verifier
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner); // emitted on owner change
+    event PolicyUpdated(uint256 max_co2_limit_g, uint256 allowed_type_1, uint256 allowed_type_2, uint256 min_production_ts); // emitted on policy update
 
     constructor() {
         owner = msg.sender; // set deployer as owner
@@ -56,17 +65,39 @@ contract ProductProofManager {
         emit VerifierRegistered(proofType, verifier); // log change
     }
 
-    // input layout: [is_valid, product_hash]
+    function setPolicy(
+        uint256 max_co2_limit_g,
+        uint256 allowed_type_1,
+        uint256 allowed_type_2,
+        uint256 min_production_ts
+    ) external onlyOwner {
+        policy = Policy({
+            max_co2_limit_g: max_co2_limit_g,
+            allowed_type_1: allowed_type_1,
+            allowed_type_2: allowed_type_2,
+            min_production_ts: min_production_ts
+        });
+        emit PolicyUpdated(max_co2_limit_g, allowed_type_1, allowed_type_2, min_production_ts);
+    }
+
+    // input layout: [product_hash, max_limit, allowed1, allowed2, min_ts]
     function submitProof(
         bytes32 proofType, // verifier key
         uint256[2] calldata a, // groth16 a
         uint256[2][2] calldata b, // groth16 b
         uint256[2] calldata c, // groth16 c
-        uint256[2] calldata input // public inputs
+        uint256[5] calldata input // public inputs
     ) external {
-        if (input[0] != 1) revert ProofNotValid(); // must signal valid proof
+        if (
+            input[1] != policy.max_co2_limit_g ||
+            input[2] != policy.allowed_type_1 ||
+            input[3] != policy.allowed_type_2 ||
+            input[4] != policy.min_production_ts
+        ) {
+            revert PolicyMismatch();
+        }
 
-        uint256 productHash = input[1]; // extract product hash
+        uint256 productHash = input[0]; // extract product hash
         if (verifiedHashes[productHash]) revert AlreadyVerified(); // enforce single verification per product across all types (original behavior)
         if (verifying[productHash]) revert VerificationInProgress(); // prevent reentrant duplicate on same product
 
@@ -114,6 +145,6 @@ interface IVerifier {
         uint256[2] calldata a, // groth16 a
         uint256[2][2] calldata b, // groth16 b
         uint256[2] calldata c, // groth16 c
-        uint256[2] calldata input // [is_valid, product_hash]
+        uint256[5] calldata input // [product_hash, max_limit, allowed1, allowed2, min_ts]
     ) external view returns (bool); // returns success flag
 }
