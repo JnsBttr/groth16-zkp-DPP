@@ -9,9 +9,9 @@ async function main() {
   console.log("\nDeploying Groth16Verifier...");
   const verifier = await ethers.deployContract("Groth16Verifier");
   const verifierReceipt = await verifier.deploymentTransaction()?.wait();
-  
+
   if (verifierReceipt) {
-    console.log(`✅ Groth16Verifier deployed to: ${await verifier.getAddress()}`);
+    console.log(`Groth16Verifier deployed to: ${await verifier.getAddress()}`);
     logGasUsage(verifierReceipt, "Verifier Deployment");
   }
 
@@ -19,9 +19,11 @@ async function main() {
   console.log("\nDeploying ProductProofManager...");
   const manager = await ethers.deployContract("ProductProofManager");
   const managerReceipt = await manager.deploymentTransaction()?.wait();
-  
+
   if (managerReceipt) {
-    console.log(`✅ ProductProofManager deployed to: ${await manager.getAddress()}`);
+    console.log(
+      `ProductProofManager deployed to: ${await manager.getAddress()}`
+    );
     logGasUsage(managerReceipt, "Manager Deployment");
   }
 
@@ -29,13 +31,16 @@ async function main() {
   console.log("\nRegistering the verifier within the ProductProofManager...");
   const proofTypeString = "groth16-v1";
   const proofTypeBytes32 = ethers.encodeBytes32String(proofTypeString);
-  const registerTx = await manager.registerVerifier(proofTypeBytes32, await verifier.getAddress());
+  const registerTx = await manager.registerVerifier(
+    proofTypeBytes32,
+    await verifier.getAddress()
+  );
   const registerReceipt = await registerTx.wait(); // Get receipt for the transaction
-  
-  if(registerReceipt) {
+
+  if (registerReceipt) {
     logGasUsage(registerReceipt, "Verifier Registration");
   }
-  
+
   // === 4. Save deployment addresses to a file ===
   const deploymentInfo = {
     verifier: await verifier.getAddress(),
@@ -49,27 +54,30 @@ async function main() {
 }
 
 function logGasUsage(receipt: any, actionName: string) {
-    if (!receipt) {
-        console.log(`Could not get receipt for ${actionName}`);
-        return;
-    }
+  if (!receipt) {
+    console.log(`Could not get receipt for ${actionName}`);
+    return;
+  }
 
-    const gasUsed: bigint = receipt.gasUsed;
-    
-    const effectiveGasPrice: bigint = receipt.effectiveGasPrice || receipt.gasPrice;
+  const gasUsed: bigint = receipt.gasUsed;
 
-    if (gasUsed === null || effectiveGasPrice === null) {
-        console.log("Gas information not available in receipt.");
-        return;
-    }
+  const effectiveGasPrice: bigint =
+    receipt.effectiveGasPrice || receipt.gasPrice;
 
-    const gasCostInWei: bigint = gasUsed * effectiveGasPrice;
-    const gasCostInEth = ethers.formatEther(gasCostInWei);
+  if (gasUsed === null || effectiveGasPrice === null) {
+    console.log("Gas information not available in receipt.");
+    return;
+  }
 
-    console.log(`   - Action: ${actionName}`);
-    console.log(`   - Gas Used: ${gasUsed.toString()}`);
-    console.log(`   - Gas Price: ${ethers.formatUnits(effectiveGasPrice, "gwei")} Gwei`);
-    console.log(`   - Transaction Cost: ${gasCostInEth} ETH`);
+  const gasCostInWei: bigint = gasUsed * effectiveGasPrice;
+  const gasCostInEth = ethers.formatEther(gasCostInWei);
+
+  console.log(` - Action: ${actionName}`);
+  console.log(` - Gas Used: ${gasUsed.toString()}`);
+  console.log(
+    ` - Gas Price: ${ethers.formatUnits(effectiveGasPrice, "gwei")} Gwei`
+  );
+  console.log(` - Transaction Cost: ${gasCostInEth} ETH`);
 }
 
 main().catch((error) => {

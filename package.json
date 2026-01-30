@@ -6,6 +6,7 @@
     "hardhat": "^2.26.1"
   },
   "dependencies": {
+    "circomlibjs": "^0.1.7",
     "dotenv": "^17.2.1"
   }
 }
