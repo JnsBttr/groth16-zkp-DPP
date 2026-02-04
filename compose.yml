@@ -1,13 +1,13 @@
 # docker-compose.yml
 
 services:
-  # Service 1: The ZK-Proof Builder (your zkproof service, corrected)
+  # Service 1: The ZK-Proof Builder 
   prover:
     build:
       context: .
       dockerfile: ./docker/prover.Dockerfile
     volumes:
-      # Correctly mount the entire project directory into the container.
+      # mount the entire project directory into the container.
       - ./:/app
       - circomlib_cache:/app/circuits/circomlib
 
@@ -36,7 +36,7 @@ services:
       - polygon-edge
     networks:
       - dpp-net
-
+# Service 4: Database
   postgres:
     image: postgres:15
     environment:
@@ -47,7 +47,7 @@ services:
       - blockscout_db:/var/lib/postgresql/data
     networks:
       - dpp-net
-
+# Service 5: chain explorer
   blockscout:
     image: blockscout/blockscout:latest
     depends_on:
@@ -75,7 +75,7 @@ services:
       - "4000:4000"
     networks:
       - dpp-net
-
+# within chain explorer 
   blockscout-frontend:
     image: ghcr.io/blockscout/frontend:latest
     depends_on:
@@ -94,7 +94,7 @@ services:
       - "3000:3000"
     networks:
       - dpp-net
-
+# migrate db to view on chain data on frontend
   blockscout-migrate:
     image: blockscout/blockscout:latest
     depends_on:
