@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Demo configuration (edit values here)
 CIRCUIT="SustainabilityCheck"
-COUNT="100"
-VALID_RATIO="0.5"
+COUNT="5"
+VALID_RATIO="0.75"
 SEED="15"
 PROOF_TYPE="groth16-v1"
 
@@ -23,7 +23,10 @@ docker compose build
 echo "2) Start local chain"
 docker compose up -d polygon-edge
 
-echo "3) Generate dataset"
+echo "3) Start Blockscout stack (DB, migrate, backend, frontend)"
+docker compose up -d postgres blockscout-migrate blockscout blockscout-frontend
+
+echo "4) Generate dataset"
 docker compose run --rm hardhat node scripts/generate_dataset.js \
   --circuit "$CIRCUIT" \
   --count "$COUNT" \
@@ -34,24 +37,24 @@ docker compose run --rm hardhat node scripts/generate_dataset.js \
   --allowed2 "$ALLOWED2" \
   --min-ts "$MIN_TS"
 
-echo "4) Setup circuit (once)"
+echo "5) Setup circuit (once)"
 docker compose run --rm prover bash scripts/setup_circuit.sh "$CIRCUIT"
 
-echo "5) Prove many"
+echo "6) Prove many"
 docker compose run --rm prover bash scripts/prove_many.sh "$CIRCUIT"
 
-echo "6) Deploy contracts"
+echo "7) Deploy contracts"
 docker compose run --rm hardhat npx hardhat run scripts/deploy.ts --network polygon_edge
 
-echo "7) Set policy"
+echo "8) Set policy"
 MAX_CO2="$MAX_CO2" ALLOWED1="$ALLOWED1" ALLOWED2="$ALLOWED2" MIN_TS="$MIN_TS" \
 docker compose run --rm hardhat npx hardhat run --network polygon_edge scripts/set_policy.ts
 
-echo "8) Register verifier"
+echo "9) Register verifier"
 PROOF_TYPE="$PROOF_TYPE" \
 docker compose run --rm hardhat npx hardhat run --network polygon_edge scripts/register_verifier.ts
 
-echo "9) Submit many"
+echo "10) Submit many"
 CIRCUIT="$CIRCUIT" PROOF_TYPE="$PROOF_TYPE" \
 docker compose run --rm hardhat npx hardhat run --network polygon_edge scripts/submit_many.ts
 
@@ -81,5 +84,8 @@ if [ -f "reports/submit_many.csv" ]; then
     printf("submit_many: total=%d expected_valid=%d callstatic_ok=%d tx_ok=%d verified=%d\n", total, exp_valid, call_ok, tx_ok, verified);
   }' reports/submit_many.csv
 fi
+
+echo "Blockscout frontend: http://localhost:3000"
+echo "Blockscout API: http://localhost:4000"
 
 echo "== Demo complete =="
