@@ -26,6 +26,10 @@ docker compose up -d polygon-edge
 echo "3) Start Blockscout stack (DB, migrate, backend, frontend)"
 docker compose up -d postgres blockscout-migrate blockscout blockscout-frontend
 
+echo "3b) Clean old demo inputs/runs for ${CIRCUIT}"
+rm -f "inputs/${CIRCUIT}_input_"*_valid.json "inputs/${CIRCUIT}_input_"*_invalid.json 2>/dev/null || true
+rm -rf "build/${CIRCUIT}/runs/${CIRCUIT}_input_"*_valid "build/${CIRCUIT}/runs/${CIRCUIT}_input_"*_invalid 2>/dev/null || true
+
 echo "4) Generate dataset"
 docker compose run --rm hardhat node scripts/generate_dataset.js \
   --circuit "$CIRCUIT" \
@@ -85,7 +89,7 @@ if [ -f "reports/submit_many.csv" ]; then
   }' reports/submit_many.csv
 fi
 
+echo "Blockscout explorer: http://localhost:4000"
 echo "Blockscout frontend: http://localhost:3000"
-echo "Blockscout API: http://localhost:4000"
 
 echo "== Demo complete =="

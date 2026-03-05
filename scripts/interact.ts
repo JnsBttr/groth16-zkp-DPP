@@ -39,7 +39,7 @@ async function main() {
     logGasUsage(receipt, "Proof Submission");
   }
 
-  const productHash = input[1];
+  const productHash = input[0];
   console.log(`\nChecking verification status for productHash: ${productHash}`);
   const isVerified = await manager.isProductVerified(productHash);
   console.log(`Verification result: ${isVerified}`);
