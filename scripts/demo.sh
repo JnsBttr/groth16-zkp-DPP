@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Demo configuration (edit values here)
 CIRCUIT="SustainabilityCheck"
-COUNT="5"
-VALID_RATIO="0.75"
+COUNT="2"
+VALID_RATIO="0.5"
 SEED="15"
 PROOF_TYPE="groth16-v1"
 
